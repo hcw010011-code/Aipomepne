@@ -1,51 +1,20 @@
-// Netlify Functions: 브라우저 대신 서버에서 API를 호출하여 키 노출을 방지합니다.
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-
 exports.handler = async (event, context) => {
-  // POST 요청이 아니면 거절
-  if (event.httpMethod !== "POST") {
-    return { 
-      statusCode: 405, 
-      body: JSON.stringify({ error: "Method Not Allowed" }) 
-    };
-  }
+  if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
   try {
     const { gender, image } = JSON.parse(event.body);
-    
-    // Netlify 환경변수에 저장한 GEMINI_API_KEY를 가져옵니다.
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      return { 
-        statusCode: 500, 
-        body: JSON.stringify({ error: "환경변수에 API 키가 설정되지 않았습니다." }) 
-      };
-    }
-
-    const genderText = gender === 'female' ? '여성' : '남성';
-    const systemPrompt = `당신은 전문적인 AI 관상가입니다. 사용자는 ${genderText}입니다. 
-    다음 항목을 포함하여 JSON 형식으로만 답변하세요:
-    - overallScore: 숫자 (0-100)
-    - facialFeatures: 문자열 (얼굴 특징 분석)
-    - impression: 문자열 (인상 비평)
-    - advice: 문자열 (스타일링 조언)
-    모든 답변은 한국어로 작성하세요.`;
+    const apiKey = process.env.GEMINI_API_KEY; // 여기서 Netlify 환경 변수를 읽습니다.
 
     const payload = {
       contents: [{
         parts: [
-          { text: `${genderText} 사용자의 얼굴을 분석해줘.` },
+          { text: `당신은 AI 관상가입니다. ${gender === 'female' ? '여성' : '남성'} 사용자의 사진을 분석해 전문적인 관상을 봐주세요. 결과는 반드시 JSON 형식으로 overallScore (숫자), facialFeatures (분석 내용), advice (짧은 조언) 필드를 포함해야 합니다. 한국어로 답변하세요.` },
           { inlineData: { mimeType: "image/png", data: image } }
         ]
       }],
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: { 
-        responseMimeType: "application/json" 
-      }
+      generationConfig: { responseMimeType: "application/json" }
     };
 
-    // Gemini API 호출
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
       {
@@ -55,24 +24,14 @@ exports.handler = async (event, context) => {
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return { statusCode: response.status, body: JSON.stringify(errorData) };
-    }
-
     const data = await response.json();
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: resultText
+      body: data.candidates[0].content.parts[0].text
     };
 
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "서버 오류: " + error.message })
-    };
+    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
 };
