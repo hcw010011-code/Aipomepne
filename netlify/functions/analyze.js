@@ -1,14 +1,14 @@
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
-
   try {
     const { gender, image } = JSON.parse(event.body);
-    const apiKey = process.env.GEMINI_API_KEY; // 여기서 Netlify 환경 변수를 읽습니다.
+    // 이 이름이 Netlify 대시보드의 Key와 완벽히 같아야 함
+    const apiKey = process.env.GEMINI_API_KEY; 
 
     const payload = {
       contents: [{
         parts: [
-          { text: `당신은 AI 관상가입니다. ${gender === 'female' ? '여성' : '남성'} 사용자의 사진을 분석해 전문적인 관상을 봐주세요. 결과는 반드시 JSON 형식으로 overallScore (숫자), facialFeatures (분석 내용), advice (짧은 조언) 필드를 포함해야 합니다. 한국어로 답변하세요.` },
+          { text: `당신은 관상가입니다. ${gender === 'female' ? '여성' : '남성'} 사용자의 사진을 분석하여 JSON으로 답변하세요. 필드: overallScore(숫자), facialFeatures(문자열), impression(문자열), advice(문자열).` },
           { inlineData: { mimeType: "image/png", data: image } }
         ]
       }],
@@ -17,11 +17,7 @@ exports.handler = async (event, context) => {
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }
+      { method: 'POST', body: JSON.stringify(payload) }
     );
 
     const data = await response.json();
@@ -30,8 +26,7 @@ exports.handler = async (event, context) => {
       headers: { "Content-Type": "application/json" },
       body: data.candidates[0].content.parts[0].text
     };
-
-  } catch (error) {
-    return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
   }
 };
