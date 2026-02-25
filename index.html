@@ -3,153 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Face Analytics</title>
+    <title>AI 관상가</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;700;900&display=swap');
         body { font-family: 'Pretendard', sans-serif; }
-        .loader { border-top-color: #ffffff; animation: spinner 1s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center p-4">
 
-    <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mt-6 border border-white/20">
-        <!-- Header -->
-        <div id="header-bg" class="bg-rose-500 p-8 text-white text-center transition-colors duration-500">
-            <h1 class="text-2xl font-black flex items-center justify-center gap-2 tracking-tight">
-                <i class="fa-solid fa-camera"></i> AI FACE ANALYTICS
-            </h1>
-            <p class="text-white/80 text-[10px] mt-2 font-medium tracking-widest uppercase">Safe & Private Analysis</p>
+    <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mt-10">
+        <div id="header-bg" class="bg-rose-500 p-8 text-white text-center transition-colors">
+            <h1 class="text-2xl font-black italic">AI FACE READER</h1>
+            <p class="text-white/80 text-[10px] mt-2 tracking-widest uppercase">Powered by Gemini 2.5</p>
         </div>
 
         <div class="p-6">
-            <!-- Gender Selector -->
             <div class="flex bg-slate-100 p-1 rounded-2xl mb-6">
-                <button id="btn-female" onclick="setGender('female')" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold bg-rose-500 text-white shadow-sm transition-all">
-                    <i class="fa-solid fa-venus"></i> 여성
-                </button>
-                <button id="btn-male" onclick="setGender('male')" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-slate-400 transition-all">
-                    <i class="fa-solid fa-mars"></i> 남성
-                </button>
+                <button onclick="setGender('female')" id="f-btn" class="flex-1 py-3 rounded-xl font-bold bg-rose-500 text-white transition-all">여성</button>
+                <button onclick="setGender('male')" id="m-btn" class="flex-1 py-3 rounded-xl font-bold text-slate-400 transition-all">남성</button>
             </div>
 
-            <!-- Upload Zone -->
-            <div id="upload-zone" class="border-2 border-dashed border-slate-200 rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all" onclick="document.getElementById('file-input').click()">
+            <div id="upload-zone" class="border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-all" onclick="document.getElementById('file-input').click()">
                 <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleFile(event)">
-                <i class="fa-solid fa-face-smile text-slate-300 text-4xl mb-3"></i>
-                <span class="text-slate-600 font-bold text-sm">얼굴 사진을 업로드하세요</span>
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300 mb-2"></i>
+                <p class="text-slate-500 font-bold text-sm">얼굴 사진을 업로드하세요</p>
             </div>
 
-            <!-- Preview & Action -->
             <div id="preview-area" class="hidden space-y-4">
-                <div class="relative rounded-3xl overflow-hidden shadow-inner bg-slate-200 aspect-[3/4]">
-                    <img id="img-preview" class="w-full h-full object-cover">
-                    <div id="loading-overlay" class="hidden absolute inset-0 bg-slate-900/70 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-                        <div class="loader w-10 h-10 border-4 border-white/20 rounded-full mb-3"></div>
-                        <span class="font-bold tracking-widest text-xs uppercase">AI 분석 중...</span>
-                    </div>
-                </div>
-                <button id="analyze-btn" onclick="requestAnalysis()" class="w-full bg-rose-500 text-white py-5 rounded-2xl font-black text-lg hover:brightness-110 transition-all shadow-lg">
-                    AI 분석 시작
-                </button>
+                <img id="img-display" class="w-full rounded-2xl aspect-[3/4] object-cover bg-slate-100 shadow-inner">
+                <button id="run-btn" onclick="startAnalysis()" class="w-full bg-rose-500 text-white py-4 rounded-xl font-black shadow-lg hover:scale-[1.02] transition-transform">분석 시작</button>
             </div>
 
-            <!-- Result Display -->
-            <div id="result-area" class="hidden space-y-4 animate-in fade-in duration-700">
-                <div id="result-card" class="bg-rose-50 p-6 rounded-[2rem] border border-rose-100 text-center">
-                    <span id="score-label" class="text-[10px] font-black text-rose-400 uppercase tracking-widest">Beauty Score</span>
-                    <div class="flex items-center justify-center gap-1 mt-1">
-                        <span id="res-score" class="text-6xl font-black text-rose-500">0</span>
-                        <span class="text-rose-300 font-bold">/100</span>
-                    </div>
-                </div>
+            <div id="loading" class="hidden py-10 text-center">
+                <div class="inline-block w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-sm mt-4 text-slate-500 font-bold">AI가 관상을 분석하고 있습니다...</p>
+            </div>
 
-                <div class="space-y-3">
-                    <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-sm">
-                        <h4 class="font-black text-slate-400 text-[10px] uppercase mb-2">상세 분석</h4>
-                        <p id="res-features" class="text-slate-700 leading-relaxed font-medium"></p>
-                    </div>
-                    <div id="advice-card" class="bg-rose-50 p-5 rounded-2xl border border-rose-100 text-sm italic">
-                        <p id="res-advice" class="text-rose-600 font-bold text-center"></p>
-                    </div>
+            <div id="result-area" class="hidden space-y-4">
+                <div id="res-card" class="bg-rose-50 p-6 rounded-3xl border border-rose-100 text-center">
+                    <div id="res-score" class="text-6xl font-black text-rose-500">0</div>
+                    <div id="res-features" class="text-sm text-slate-600 mt-4 leading-relaxed text-left"></div>
+                    <div id="res-advice" class="mt-4 p-3 bg-white rounded-lg border border-rose-100 text-xs font-bold text-rose-600 italic"></div>
                 </div>
-
-                <button onclick="location.reload()" class="w-full py-4 text-slate-400 text-xs font-bold uppercase tracking-widest">
-                    <i class="fa-solid fa-rotate-right mr-1"></i> 다시 분석하기
-                </button>
+                <button onclick="location.reload()" class="w-full text-slate-400 text-xs font-bold py-2">다시 하기</button>
             </div>
         </div>
     </div>
 
     <script>
-        let currentGender = 'female';
-        let base64Data = null;
+        let gender = 'female';
+        let base64 = null;
 
         function setGender(g) {
-            currentGender = g;
+            gender = g;
             const isF = g === 'female';
-            document.getElementById('btn-female').className = isF ? 'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold bg-rose-500 text-white shadow-sm transition-all' : 'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-slate-400 transition-all';
-            document.getElementById('btn-male').className = !isF ? 'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold bg-blue-600 text-white shadow-sm transition-all' : 'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-slate-400 transition-all';
+            document.getElementById('f-btn').className = isF ? 'flex-1 py-3 rounded-xl font-bold bg-rose-500 text-white' : 'flex-1 py-3 rounded-xl font-bold text-slate-400';
+            document.getElementById('m-btn').className = !isF ? 'flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white' : 'flex-1 py-3 rounded-xl font-bold text-slate-400';
             document.getElementById('header-bg').className = isF ? 'bg-rose-500 p-8 text-white text-center transition-colors' : 'bg-blue-600 p-8 text-white text-center transition-colors';
-            document.getElementById('analyze-btn').className = isF ? 'w-full bg-rose-500 text-white py-5 rounded-2xl font-black text-lg shadow-lg' : 'w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg';
+            document.getElementById('run-btn').className = isF ? 'w-full bg-rose-500 text-white py-4 rounded-xl font-black shadow-lg' : 'w-full bg-blue-600 text-white py-4 rounded-xl font-black shadow-lg';
         }
 
         function handleFile(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (event) => {
-                base64Data = event.target.result.split(',')[1];
-                document.getElementById('img-preview').src = event.target.result;
+            reader.onload = (ev) => {
+                base64 = ev.target.result.split(',')[1];
+                document.getElementById('img-display').src = ev.target.result;
                 document.getElementById('upload-zone').classList.add('hidden');
                 document.getElementById('preview-area').classList.remove('hidden');
             };
             reader.readAsDataURL(file);
         }
 
-        async function requestAnalysis() {
-            if (!base64Data) return;
-            
-            document.getElementById('loading-overlay').classList.remove('hidden');
-            document.getElementById('analyze-btn').disabled = true;
+        async function startAnalysis() {
+            document.getElementById('preview-area').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
 
             try {
-                // 핵심: 이제 로컬 키가 아닌 Netlify 서버리스 함수로 요청을 보냅니다.
+                // 중요: 내 컴퓨터의 키가 아닌 Netlify 서버 함수(analyze.js)를 호출합니다.
                 const response = await fetch('/.netlify/functions/analyze', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gender: currentGender, image: base64Data })
+                    body: JSON.stringify({ gender, image: base64 })
                 });
 
-                if (!response.ok) throw new Error("분석 요청에 실패했습니다.");
+                if (!response.ok) throw new Error();
 
                 const data = await response.json();
                 
-                showResult(data);
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('result-area').classList.remove('hidden');
+                
+                document.getElementById('res-score').innerText = data.overallScore;
+                document.getElementById('res-features').innerText = data.facialFeatures;
+                document.getElementById('res-advice').innerText = `"${data.advice}"`;
+
+                if(gender === 'male') {
+                    document.getElementById('res-card').className = 'bg-blue-50 p-6 rounded-3xl border border-blue-100 text-center';
+                    document.getElementById('res-score').className = 'text-6xl font-black text-blue-600';
+                }
             } catch (err) {
-                alert("에러 발생: " + err.message);
+                alert("분석 중 오류가 발생했습니다. 다시 시도해주세요.");
                 location.reload();
-            } finally {
-                document.getElementById('loading-overlay').classList.add('hidden');
-            }
-        }
-
-        function showResult(data) {
-            document.getElementById('preview-area').classList.add('hidden');
-            document.getElementById('result-area').classList.remove('hidden');
-
-            document.getElementById('res-score').innerText = data.overallScore;
-            document.getElementById('res-features').innerText = data.facialFeatures;
-            document.getElementById('res-advice').innerText = `"${data.advice}"`;
-
-            if (currentGender === 'male') {
-                document.getElementById('result-card').className = 'bg-blue-50 p-6 rounded-[2rem] border border-blue-100 text-center';
-                document.getElementById('res-score').className = 'text-6xl font-black text-blue-600';
-                document.getElementById('score-label').className = 'text-[10px] font-black text-blue-400 uppercase tracking-widest';
-                document.getElementById('advice-card').className = 'bg-blue-50 p-5 rounded-2xl border border-blue-100 text-sm italic';
-                document.getElementById('res-advice').className = 'text-blue-600 font-bold text-center';
             }
         }
     </script>
