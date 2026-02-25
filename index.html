@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 관상가</title>
+    <title>AI Face Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -11,50 +11,44 @@
         body { font-family: 'Pretendard', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col items-center p-4">
-
-    <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mt-10">
-        <div id="header-bg" class="bg-rose-500 p-8 text-white text-center transition-colors">
-            <h1 class="text-2xl font-black italic">AI FACE READER</h1>
-            <p class="text-white/80 text-[10px] mt-2 tracking-widest uppercase">Powered by Gemini 2.5</p>
+<body class="bg-slate-50 min-h-screen p-4 flex flex-col items-center">
+    <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mt-10 border border-slate-100">
+        <div id="header-bg" class="bg-rose-500 p-8 text-white text-center">
+            <h1 class="text-2xl font-black italic tracking-tighter">AI FACE READER</h1>
+            <p class="text-white/80 text-[10px] mt-2 tracking-widest uppercase">Safe & Private Analysis</p>
         </div>
-
+        
         <div class="p-6">
-            <div class="flex bg-slate-100 p-1 rounded-2xl mb-6">
+            <div class="flex gap-2 mb-6 bg-slate-100 p-1 rounded-2xl">
                 <button onclick="setGender('female')" id="f-btn" class="flex-1 py-3 rounded-xl font-bold bg-rose-500 text-white transition-all">여성</button>
                 <button onclick="setGender('male')" id="m-btn" class="flex-1 py-3 rounded-xl font-bold text-slate-400 transition-all">남성</button>
             </div>
 
-            <div id="upload-zone" class="border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-all" onclick="document.getElementById('file-input').click()">
-                <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleFile(event)">
+            <div id="upload-box" class="border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-all" onclick="document.getElementById('file-in').click()">
+                <input type="file" id="file-in" class="hidden" accept="image/*" onchange="onFile(event)">
                 <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300 mb-2"></i>
-                <p class="text-slate-500 font-bold text-sm">얼굴 사진을 업로드하세요</p>
-            </div>
-
-            <div id="preview-area" class="hidden space-y-4">
-                <img id="img-display" class="w-full rounded-2xl aspect-[3/4] object-cover bg-slate-100 shadow-inner">
-                <button id="run-btn" onclick="startAnalysis()" class="w-full bg-rose-500 text-white py-4 rounded-xl font-black shadow-lg hover:scale-[1.02] transition-transform">분석 시작</button>
+                <p class="text-slate-500 font-bold text-sm">얼굴 사진 업로드</p>
             </div>
 
             <div id="loading" class="hidden py-10 text-center">
                 <div class="inline-block w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
-                <p class="text-sm mt-4 text-slate-500 font-bold">AI가 관상을 분석하고 있습니다...</p>
+                <p class="text-sm mt-4 text-slate-500 font-bold">AI가 관상을 분석하는 중...</p>
             </div>
 
-            <div id="result-area" class="hidden space-y-4">
-                <div id="res-card" class="bg-rose-50 p-6 rounded-3xl border border-rose-100 text-center">
-                    <div id="res-score" class="text-6xl font-black text-rose-500">0</div>
-                    <div id="res-features" class="text-sm text-slate-600 mt-4 leading-relaxed text-left"></div>
-                    <div id="res-advice" class="mt-4 p-3 bg-white rounded-lg border border-rose-100 text-xs font-bold text-rose-600 italic"></div>
+            <div id="result" class="hidden mt-4 space-y-4">
+                <div id="res-card" class="bg-rose-50 p-6 rounded-[2rem] border border-rose-100 text-center">
+                    <div id="score" class="text-6xl font-black text-rose-500">0</div>
+                    <div id="features" class="text-sm mt-4 text-slate-600 text-left leading-relaxed"></div>
+                    <div id="advice" class="mt-4 p-3 bg-white rounded-xl text-xs font-bold text-rose-600 italic border border-rose-100"></div>
                 </div>
-                <button onclick="location.reload()" class="w-full text-slate-400 text-xs font-bold py-2">다시 하기</button>
+                <button onclick="location.reload()" class="w-full text-slate-400 text-xs font-bold py-4 uppercase">다시 분석하기</button>
             </div>
         </div>
     </div>
 
     <script>
         let gender = 'female';
-        let base64 = null;
+        let imgBase64 = null;
 
         function setGender(g) {
             gender = g;
@@ -62,50 +56,44 @@
             document.getElementById('f-btn').className = isF ? 'flex-1 py-3 rounded-xl font-bold bg-rose-500 text-white' : 'flex-1 py-3 rounded-xl font-bold text-slate-400';
             document.getElementById('m-btn').className = !isF ? 'flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white' : 'flex-1 py-3 rounded-xl font-bold text-slate-400';
             document.getElementById('header-bg').className = isF ? 'bg-rose-500 p-8 text-white text-center transition-colors' : 'bg-blue-600 p-8 text-white text-center transition-colors';
-            document.getElementById('run-btn').className = isF ? 'w-full bg-rose-500 text-white py-4 rounded-xl font-black shadow-lg' : 'w-full bg-blue-600 text-white py-4 rounded-xl font-black shadow-lg';
         }
 
-        function handleFile(e) {
+        function onFile(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
-                base64 = ev.target.result.split(',')[1];
-                document.getElementById('img-display').src = ev.target.result;
-                document.getElementById('upload-zone').classList.add('hidden');
-                document.getElementById('preview-area').classList.remove('hidden');
+                imgBase64 = ev.target.result.split(',')[1];
+                doAnalyze();
             };
             reader.readAsDataURL(file);
         }
 
-        async function startAnalysis() {
-            document.getElementById('preview-area').classList.add('hidden');
+        async function doAnalyze() {
+            document.getElementById('upload-box').classList.add('hidden');
             document.getElementById('loading').classList.remove('hidden');
 
             try {
-                // 중요: 내 컴퓨터의 키가 아닌 Netlify 서버 함수(analyze.js)를 호출합니다.
-                const response = await fetch('/.netlify/functions/analyze', {
+                const response = await fetch('/api/analyze', {
                     method: 'POST',
-                    body: JSON.stringify({ gender, image: base64 })
+                    body: JSON.stringify({ gender, image: imgBase64 })
                 });
 
                 if (!response.ok) throw new Error();
-
                 const data = await response.json();
                 
                 document.getElementById('loading').classList.add('hidden');
-                document.getElementById('result-area').classList.remove('hidden');
-                
-                document.getElementById('res-score').innerText = data.overallScore;
-                document.getElementById('res-features').innerText = data.facialFeatures;
-                document.getElementById('res-advice').innerText = `"${data.advice}"`;
+                document.getElementById('result').classList.remove('hidden');
+                document.getElementById('score').innerText = data.overallScore + "점";
+                document.getElementById('features').innerText = data.facialFeatures;
+                document.getElementById('advice').innerText = `"${data.advice}"`;
 
                 if(gender === 'male') {
-                    document.getElementById('res-card').className = 'bg-blue-50 p-6 rounded-3xl border border-blue-100 text-center';
-                    document.getElementById('res-score').className = 'text-6xl font-black text-blue-600';
+                    document.getElementById('res-card').className = "bg-blue-50 p-6 rounded-[2rem] border border-blue-100 text-center";
+                    document.getElementById('score').className = "text-6xl font-black text-blue-600";
                 }
             } catch (err) {
-                alert("분석 중 오류가 발생했습니다. 다시 시도해주세요.");
+                alert("분석에 실패했습니다. 다시 시도해 주세요.");
                 location.reload();
             }
         }
